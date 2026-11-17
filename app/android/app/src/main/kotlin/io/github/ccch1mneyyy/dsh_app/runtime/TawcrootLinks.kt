@@ -88,6 +88,8 @@ class TawcrootLinks(
                             val obj = objects.resolve(token)
                             if (TOKEN.matches(token) && Files.exists(obj, LinkOption.NOFOLLOW_LINKS)) names += file to obj
                             else incomplete = true
+                        } else if (TEMP.matches(file.fileName.toString())) {
+                            Files.delete(file) // a symlink copy from a run killed before its rename
                         }
                     } else if (attrs.isRegularFile && TEMP.matches(file.fileName.toString())) {
                         Files.delete(file) // a copy from a run that was killed before its rename

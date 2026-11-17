@@ -154,6 +154,25 @@ class TawcrootLinksTest {
         assertEquals("../lib/libz.so.1", Files.readSymbolicLink(name.toPath()).toString())
     }
 
+    @Test fun killedSymlinkCopyIsRemovedWithoutDeletingTokenNamesOrItsTarget() {
+        val bytes = "target payload".toByteArray()
+        val payload = File(root, "root/payload.bin").apply { parentFile.mkdirs(); writeBytes(bytes) }
+        val target = Paths.get(payload.name)
+        File(store, "link").mkdirs()
+        Files.createSymbolicLink(File(store, "link/77").toPath(), target)
+        val ordinary = name("root/linked.bin", "77")
+        val tokenNamedTemp = name("root/.dsh-go-tawc-fedcba9876543210.tmp", "77")
+        val stale = File(root, "root/.dsh-go-tawc-0123456789abcdef.tmp").toPath()
+        Files.createSymbolicLink(stale, target)
+
+        assertEquals(TawcrootLinks.Result.Done(2, true), migration().run())
+        assertFalse(Files.exists(stale, LinkOption.NOFOLLOW_LINKS))
+        assertArrayEquals(bytes, payload.readBytes())
+        for (file in listOf(ordinary, tokenNamedTemp)) {
+            assertEquals(target, Files.readSymbolicLink(file.toPath()))
+        }
+    }
+
     @Test fun notEnoughSpaceChangesNothing() {
         obj("5", "x".repeat(10_000))
         val a = name("root/a", "5")
